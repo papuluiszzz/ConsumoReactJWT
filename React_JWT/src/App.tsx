@@ -1,59 +1,57 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import Login from './Pages/Login';
-
-// Componente simple para mostrar cuando ya está logueado
-const Dashboard = () => {
-  const userName = localStorage.getItem('userName');
-  
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userName');
-    window.location.reload();
-  };
-
-  return (
-    <div style={{ 
-      padding: '2rem', 
-      textAlign: 'center',
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center'
-    }}>
-      <h1>¡Bienvenido {userName}!</h1>
-      <p>Has iniciado sesión correctamente</p>
-      <button 
-        onClick={handleLogout}
-        style={{
-          padding: '10px 20px',
-          backgroundColor: '#1976d2',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontSize: '16px'
-        }}
-      >
-        Cerrar Sesión
-      </button>
-    </div>
-  );
-};
+import Home from './Pages/Home';
+import { CircularProgress, Box } from '@mui/material';
 
 function App() {
-  const isAuthenticated = !!localStorage.getItem('token');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = cargando
+  
+  // Función para verificar autenticación
+  const checkAuth = () => {
+    const token = localStorage.getItem('token');
+    const userName = localStorage.getItem('userName');
+    return !!(token && userName);
+  };
+
+  // Verificar autenticación al cargar la app
+  useEffect(() => {
+    setIsAuthenticated(checkAuth());
+  }, []);
+
+  // Función para actualizar el estado de autenticación (la pasaremos a los componentes)
+  const updateAuth = () => {
+    setIsAuthenticated(checkAuth());
+  };
+
+  // Mostrar loading mientras verifica
+  if (isAuthenticated === null) {
+    return (
+      <Box
+        sx={{
+          width: '100vw',
+          height: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#ffffff',
+        }}
+      >
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
 
   return (
     <Router>
       <Routes>
         <Route 
           path='/login' 
-          element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
+          element={isAuthenticated ? <Navigate to="/" replace /> : <Login onLogin={updateAuth} />} 
         />
         <Route 
           path='/' 
-          element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />} 
+          element={isAuthenticated ? <Home onLogout={updateAuth} /> : <Navigate to="/login" replace />} 
         />
         <Route 
           path='*' 
@@ -61,7 +59,7 @@ function App() {
         />
       </Routes>
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;

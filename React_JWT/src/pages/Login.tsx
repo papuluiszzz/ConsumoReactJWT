@@ -2,24 +2,20 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Box,
-    Card,
-    CardContent,
     TextField,
     Button,
     Typography,
     Alert,
     CircularProgress,
     Paper,
-    alpha,
-    useTheme,
-    Grid,
 } from '@mui/material';
 import LoginIcon from '@mui/icons-material/Login';
-import EmailIcon from '@mui/icons-material/Email';
-import LockIcon from '@mui/icons-material/Lock';
 
-const Login: React.FC = () => {
-    const theme = useTheme();
+interface LoginProps {
+    onLogin: () => void; // Callback para notificar al App del login exitoso
+}
+
+const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const navigate = useNavigate();
     
     const [formData, setFormData] = useState({
@@ -35,6 +31,7 @@ const Login: React.FC = () => {
             ...formData,
             [e.target.name]: e.target.value
         });
+        if (error) setError('');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -47,6 +44,7 @@ const Login: React.FC = () => {
         }
 
         setLoading(true);
+        console.log('Enviando login:', { email: formData.email, password: formData.password });
 
         try {
             const response = await fetch('http://localhost:8000/', {
@@ -60,21 +58,29 @@ const Login: React.FC = () => {
                 }),
             });
 
+            console.log('Status de respuesta:', response.status);
             const data = await response.json();
+            console.log('Datos recibidos:', data);
 
             if (response.ok && data.success) {
-                // Guardar token y nombre de usuario
+                // Guardar en localStorage
                 localStorage.setItem('token', data.accessToken);
                 localStorage.setItem('userName', data.data);
                 
-                // Redirigir al inicio
+                console.log('Login exitoso, actualizando estado...');
+                
+                // Notificar al App que hubo login exitoso
+                onLogin();
+                
+                // Redirigir
                 navigate('/');
             } else {
+                console.error('Error en login:', data);
                 setError(data.msg || 'Credenciales incorrectas');
             }
         } catch (error) {
-            console.error('Error en login:', error);
-            setError('Error de conexión. Intenta nuevamente.');
+            console.error('Error de conexión:', error);
+            setError('Error de conexión. Verifica que el servidor esté funcionando.');
         } finally {
             setLoading(false);
         }
@@ -83,43 +89,31 @@ const Login: React.FC = () => {
     return (
         <Box
             sx={{
-                minHeight: '100vh',
+                width: '100vw',
+                height: '100vh',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: alpha(theme.palette.grey[50], 0.5),
-                px: 2,
+                backgroundColor: '#ffffff',
+                padding: 2,
             }}
         >
             <Paper
-                elevation={4}
+                elevation={3}
                 sx={{
                     p: 4,
-                    borderRadius: 3,
-                    maxWidth: 400,
                     width: '100%',
+                    maxWidth: 400,
+                    borderRadius: 2,
                 }}
             >
                 <Box textAlign="center" mb={3}>
-                    <Box
-                        sx={{
-                            display: 'inline-flex',
-                            p: 2,
-                            borderRadius: '50%',
-                            bgcolor: theme.palette.primary.main,
-                            color: 'white',
-                            mb: 2
-                        }}
-                    >
-                        <LoginIcon sx={{ fontSize: 30 }} />
-                    </Box>
-                    
+                    <LoginIcon sx={{ fontSize: 40, color: 'primary.main', mb: 2 }} />
                     <Typography variant="h4" fontWeight="bold" gutterBottom>
                         Iniciar Sesión
                     </Typography>
-                    
                     <Typography variant="body1" color="text.secondary">
-                        Accede a tu cuenta del sistema de inventario
+                        Sistema de Inventario
                     </Typography>
                 </Box>
 
@@ -130,64 +124,50 @@ const Login: React.FC = () => {
                 )}
 
                 <Box component="form" onSubmit={handleSubmit}>
-                    <Grid container spacing={2}>
-                        <Grid item xs={12}>
-                            <TextField
-                                name="email"
-                                label="Email"
-                                type="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                variant="outlined"
-                                fullWidth
-                                required
-                                InputProps={{
-                                    startAdornment: <EmailIcon sx={{ mr: 1, color: 'action.active' }} />,
-                                }}
-                                disabled={loading}
-                            />
-                        </Grid>
+                    <TextField
+                        name="email"
+                        label="Email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        variant="outlined"
+                        fullWidth
+                        required
+                        disabled={loading}
+                        sx={{ mb: 2 }}
+                        placeholder="Ingresa tu email"
+                    />
 
-                        <Grid item xs={12}>
-                            <TextField
-                                name="password"
-                                label="Contraseña"
-                                type="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                variant="outlined"
-                                fullWidth
-                                required
-                                InputProps={{
-                                    startAdornment: <LockIcon sx={{ mr: 1, color: 'action.active' }} />,
-                                }}
-                                disabled={loading}
-                            />
-                        </Grid>
-                    </Grid>
+                    <TextField
+                        name="password"
+                        label="Contraseña"
+                        type="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        variant="outlined"
+                        fullWidth
+                        required
+                        disabled={loading}
+                        sx={{ mb: 3 }}
+                        placeholder="Ingresa tu contraseña"
+                    />
 
                     <Button
                         type="submit"
                         variant="contained"
                         fullWidth
                         disabled={loading}
-                        startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <LoginIcon />}
+                        startIcon={loading ? <CircularProgress size={20} /> : <LoginIcon />}
                         sx={{
-                            mt: 3,
                             py: 1.5,
-                            fontWeight: 500,
-                            borderRadius: 2,
-                            boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,
-                            '&:hover': {
-                                transform: 'translateY(-2px)',
-                                boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.5)}`,
-                            },
-                            transition: 'all 0.3s ease',
+                            fontSize: '1rem',
                         }}
                     >
                         {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                     </Button>
                 </Box>
+
+
             </Paper>
         </Box>
     );
